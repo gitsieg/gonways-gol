@@ -30,7 +30,7 @@ func NewServer() *Server {
 			ConnState:         nil,
 			ErrorLog:          nil,
 		},
-		board: gol.NewBoard(image.Pt(60, 60)),
+		board: gol.GameOfLife(image.Pt(60, 60)),
 	}
 	router := mux.NewRouter()
 	router.HandleFunc("/hello", server.handleIterate).Methods("GET")

@@ -3,11 +3,10 @@ package gol
 import (
 	"image"
 	"log"
-	"sync"
 )
 
-// NewBoard creates a new board with given dimensions.
-func NewBoard(dims image.Point) *Board {
+// GameOfLife creates a new board with given dimensions.
+func GameOfLife(dims image.Point) *Board {
 	board := &Board{
 		Dims:  dims,
 		cells: map[image.Point]bool{},
@@ -15,20 +14,83 @@ func NewBoard(dims image.Point) *Board {
 	board.init()
 	return board
 }
+func HighLife(dims image.Point) *Board {
+	board := &Board{
+		highLife: true,
+		Dims:     dims,
+		cells:    map[image.Point]bool{},
+	}
+	board.init()
+	return board
+}
 
 // Board is the board with cells and dimensions
 type Board struct {
-	mu    sync.Mutex
-	Dims  image.Point
-	cells map[image.Point]bool
+	highLife bool
+	Dims     image.Point
+	cells    map[image.Point]bool
 }
 
 // init set an inital board state.
 func (b *Board) init() {
-	b.smallExploderAt(image.Pt(30, 30))
-	b.exploderAt(image.Pt(60, 60))
-	b.gosperGliderGunAt(image.Pt(100, 100))
+
+	b.replicator(image.Pt(b.Dims.X/2, b.Dims.Y/2))
+	//b.smallExploderAt(image.Pt(30, 30))
+	////b.exploderAt(image.Pt(60, 60))
+	//b.gosperGliderGunAt(image.Pt(0, 4))
+	//b.gosperGliderGunAt(image.Pt(0, 34))
+	//b.gosperGliderGunAt(image.Pt(0, 64))
+	//b.gosperGliderGunAt(image.Pt(0, 94))
+	//b.gosperGliderGunAt(image.Pt(0, 124))
+	//b.gosperGliderGunAt(image.Pt(0, 154))
+	//b.gosperGliderGunAt(image.Pt(0, 184))
+	//b.gosperGliderGunAt(image.Pt(0, 214))
+	//b.gosperGliderGunAt(image.Pt(38, 4))
+	//b.gosperGliderGunAt(image.Pt(80, 4))
+	//
+	//b.tumblerAt(image.Pt(300, 100))
+	//b.tumblerAt(image.Pt(300, 110))
+	//b.tumblerAt(image.Pt(300, 120))
+	//b.tumblerAt(image.Pt(300, 130))
+	//b.tumblerAt(image.Pt(300, 140))
+	//b.tumblerAt(image.Pt(300, 150))
+	//b.tumblerAt(image.Pt(300, 160))
+	//b.tumblerAt(image.Pt(300, 170))
+	//b.tumblerAt(image.Pt(300, 180))
+	//b.tumblerAt(image.Pt(300, 190))
+	//b.tumblerAt(image.Pt(300, 200))
+	//b.tumblerAt(image.Pt(300, 210))
+	//b.tumblerAt(image.Pt(300, 220))
 }
+
+func (b *Board) replicator(pt image.Point) {
+	b.cells[image.Pt(pt.X+2, pt.Y)] = true
+	b.cells[image.Pt(pt.X+3, pt.Y)] = true
+	b.cells[image.Pt(pt.X+4, pt.Y)] = true
+
+	b.cells[image.Pt(pt.X+1, pt.Y+1)] = true
+	b.cells[image.Pt(pt.X+4, pt.Y+1)] = true
+
+	b.cells[image.Pt(pt.X, pt.Y+2)] = true
+	b.cells[image.Pt(pt.X+4, pt.Y+2)] = true
+
+	b.cells[image.Pt(pt.X, pt.Y+3)] = true
+	b.cells[image.Pt(pt.X+3, pt.Y+3)] = true
+
+	b.cells[image.Pt(pt.X, pt.Y+4)] = true
+	b.cells[image.Pt(pt.X+1, pt.Y+4)] = true
+	b.cells[image.Pt(pt.X+2, pt.Y+4)] = true
+}
+
+/*
+  0 1 2 3 4
+0 - - o o o
+1 - o - - o
+2 o - - - o
+3 o - - o
+4 o o o
+
+*/
 
 func (b *Board) smallExploderAt(pt image.Point) {
 	b.cells[image.Pt(pt.X+1, pt.Y+0)] = true
@@ -167,8 +229,6 @@ func (b *Board) Event() *Event {
 
 // Points returns the dimensions of the board and a list of living cells within the board
 func (b *Board) Points() []image.Point {
-	b.mu.Lock()
-	defer b.mu.Unlock()
 	pts := make([]image.Point, 0)
 	for k := range b.cells {
 		pts = append(pts, k)
@@ -184,8 +244,6 @@ type Event struct {
 
 // Pretty just prints the board to the console.
 func (b *Board) Pretty() {
-	b.mu.Lock()
-	defer b.mu.Unlock()
 	out := "\n"
 	for r := 0; r < b.Dims.Y; r++ {
 		for c := 0; c < b.Dims.X; c++ {
@@ -202,8 +260,6 @@ func (b *Board) Pretty() {
 
 // Iterate iterates the board.
 func (b *Board) Iterate() {
-	b.mu.Lock()
-	defer b.mu.Unlock()
 	nexIteration := map[image.Point]bool{}
 	for r := 0; r < b.Dims.Y; r++ {
 		for c := 0; c < b.Dims.X; c++ {
@@ -214,6 +270,16 @@ func (b *Board) Iterate() {
 		}
 	}
 	b.cells = nexIteration
+}
+
+// Runs the board in a separate routine forever.
+func (b *Board) Start(out chan<- []image.Point) {
+	for {
+		out <- b.Points() // this will throttle, most definitely.
+		b.Iterate()
+		//time.Sleep(3 * time.Second)
+		// if fps should be adjusted, this method is probably the place to do it
+	}
 }
 
 // neighbors counts how many neighbors a given point has.
@@ -236,6 +302,11 @@ func (b *Board) neighbors(pt image.Point) int {
 
 // continueLivingOrResurrect returns true if the cell should be alive, false otherwise.
 func (b *Board) continueLivingOrResurrect(alive bool, neighbors int) bool {
+	if b.highLife {
+		if !alive && neighbors == 3 || !alive && neighbors == 6 {
+			return true
+		}
+	}
 	if !alive && neighbors == 3 {
 		return true
 	}
