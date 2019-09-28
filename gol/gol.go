@@ -34,11 +34,10 @@ type Board struct {
 // init set an inital board state.
 func (b *Board) init() {
 
-	b.replicator(image.Pt(b.Dims.X/2, b.Dims.Y/2))
 	//b.smallExploderAt(image.Pt(30, 30))
 	////b.exploderAt(image.Pt(60, 60))
 	//b.gosperGliderGunAt(image.Pt(0, 4))
-	//b.gosperGliderGunAt(image.Pt(0, 34))
+	b.gosperGliderGunAt(image.Pt(0, 34))
 	//b.gosperGliderGunAt(image.Pt(0, 64))
 	//b.gosperGliderGunAt(image.Pt(0, 94))
 	//b.gosperGliderGunAt(image.Pt(0, 124))

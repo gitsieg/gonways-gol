@@ -13,11 +13,11 @@ import (
 )
 
 func main() {
-	size := image.Pt(640, 480)
+	size := image.Pt(320, 240)
 	points := make(chan []image.Point)
 	mats := make(chan gocv.Mat)
 	stream := mjpeg.NewStream()
-	board := gol.HighLife(size)
+	board := gol.GameOfLife(size)
 
 	// Set ut parallelism
 	go board.Start(points)                   // board feeds to points
