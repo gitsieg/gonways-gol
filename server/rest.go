@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/json"
 	"gonways-gol/gol"
-	"image"
+	"log"
 	"net/http"
 	"time"
 
@@ -15,10 +15,10 @@ type Server struct {
 	board     *gol.Board
 }
 
-func NewServer() *Server {
+func NewServer(board *gol.Board) *Server {
 	server := &Server{
 		httpServe: &http.Server{
-			Addr:              "127.0.0.1:8080",
+			Addr:              "127.0.0.1:8081",
 			Handler:           nil,
 			TLSConfig:         nil,
 			ReadTimeout:       15 * time.Second,
@@ -30,28 +30,34 @@ func NewServer() *Server {
 			ConnState:         nil,
 			ErrorLog:          nil,
 		},
-		board: gol.GameOfLife(image.Pt(60, 60)),
+		board: board,
 	}
-	router := mux.NewRouter()
-	router.HandleFunc("/hello", server.handleIterate).Methods("GET")
-	server.httpServe.Handler = router
+	server.httpServe.Handler = server.routes()
 	return server
 }
 
-func (s *Server) handleIterate(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
-	event := s.board.Event()
-	bytes, e := json.Marshal(event)
-	if e != nil {
-		w.Write([]byte(e.Error()))
+func (s *Server) HandleBoardCreateStructure() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		enableCors(&w)
+		req := &gol.GolRequest{}
+		decoder := json.NewDecoder(r.Body)
+		if e := decoder.Decode(req); e != nil {
+
+		}
+		log.Println(req)
+		s.board.Requests <- req
 	}
-	w.Write(bytes)
-	s.board.Iterate()
-	s.board.Pretty()
 }
 
 func (s *Server) Start() error {
 	return s.httpServe.ListenAndServe()
+}
+
+func (s *Server) routes() *mux.Router {
+	router := mux.NewRouter()
+	router.HandleFunc("/create", s.HandleBoardCreateStructure()).Methods("POST")
+	return router
 }
 
 func enableCors(w *http.ResponseWriter) {
