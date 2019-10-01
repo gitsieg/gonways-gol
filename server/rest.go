@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/rs/cors"
 	"gonways-gol/gol"
 	"log"
 	"net/http"
@@ -32,19 +33,34 @@ func NewServer(board *gol.Board) *Server {
 		},
 		board: board,
 	}
+
 	server.httpServe.Handler = server.routes()
+	c := cors.New(cors.Options{
+		AllowedOrigins:         []string{"*"},
+		AllowOriginFunc:        nil,
+		AllowOriginRequestFunc: nil,
+		AllowedMethods:         nil,
+		AllowedHeaders:         nil,
+		ExposedHeaders:         nil,
+		MaxAge:                 0,
+		AllowCredentials:       false,
+		OptionsPassthrough:     false,
+		Debug:                  false,
+	})
+	c.Handler(server.httpServe.Handler)
 	return server
 }
 
 func (s *Server) HandleBoardCreateStructure() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		enableCors(&w)
 		req := &gol.GolRequest{}
 		decoder := json.NewDecoder(r.Body)
 		if e := decoder.Decode(req); e != nil {
-
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(e.Error()))
+			return
 		}
+		w.WriteHeader(http.StatusOK)
 		log.Println(req)
 		s.board.Requests <- req
 	}
@@ -60,7 +76,3 @@ func (s *Server) routes() *mux.Router {
 	return router
 }
 
-func enableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
-	(*w).Header().Set("Content-Type", "application/json")
-}
