@@ -12,7 +12,20 @@ func GameOfLife(dims image.Point) *Board {
 		cells: map[image.Point]bool{},
 	}
 	board.init()
+	go board.listen()
 	return board
+}
+
+func (b *Board) listen() {
+	for {
+		r := <-b.requests
+		switch r.Request {
+		case ClearBoard:
+			log.Println("ClearBoard")
+		case Tumbler:
+			log.Println("Tumbler")
+		}
+	}
 }
 func HighLife(dims image.Point) *Board {
 	board := &Board{
@@ -29,6 +42,7 @@ type Board struct {
 	highLife bool
 	Dims     image.Point
 	cells    map[image.Point]bool
+	requests chan *BoardRequest
 }
 
 // init set an inital board state.
@@ -38,30 +52,31 @@ func (b *Board) init() {
 	////b.exploderAt(image.Pt(60, 60))
 	//b.gosperGliderGunAt(image.Pt(0, 4))
 	b.gosperGliderGunAt(image.Pt(0, 34))
-	//b.gosperGliderGunAt(image.Pt(0, 64))
-	//b.gosperGliderGunAt(image.Pt(0, 94))
-	//b.gosperGliderGunAt(image.Pt(0, 124))
-	//b.gosperGliderGunAt(image.Pt(0, 154))
-	//b.gosperGliderGunAt(image.Pt(0, 184))
-	//b.gosperGliderGunAt(image.Pt(0, 214))
-	//b.gosperGliderGunAt(image.Pt(38, 4))
-	//b.gosperGliderGunAt(image.Pt(80, 4))
-	//
-	//b.tumblerAt(image.Pt(300, 100))
-	//b.tumblerAt(image.Pt(300, 110))
-	//b.tumblerAt(image.Pt(300, 120))
-	//b.tumblerAt(image.Pt(300, 130))
-	//b.tumblerAt(image.Pt(300, 140))
-	//b.tumblerAt(image.Pt(300, 150))
-	//b.tumblerAt(image.Pt(300, 160))
-	//b.tumblerAt(image.Pt(300, 170))
-	//b.tumblerAt(image.Pt(300, 180))
-	//b.tumblerAt(image.Pt(300, 190))
-	//b.tumblerAt(image.Pt(300, 200))
-	//b.tumblerAt(image.Pt(300, 210))
-	//b.tumblerAt(image.Pt(300, 220))
+	b.gosperGliderGunAt(image.Pt(0, 64))
+	b.gosperGliderGunAt(image.Pt(0, 94))
+	b.gosperGliderGunAt(image.Pt(0, 124))
+	b.gosperGliderGunAt(image.Pt(0, 154))
+	b.gosperGliderGunAt(image.Pt(0, 184))
+	b.gosperGliderGunAt(image.Pt(0, 214))
+	b.gosperGliderGunAt(image.Pt(38, 4))
+	b.gosperGliderGunAt(image.Pt(80, 4))
+
+	b.tumblerAt(image.Pt(300, 100))
+	b.tumblerAt(image.Pt(300, 110))
+	b.tumblerAt(image.Pt(300, 120))
+	b.tumblerAt(image.Pt(300, 130))
+	b.tumblerAt(image.Pt(300, 140))
+	b.tumblerAt(image.Pt(300, 150))
+	b.tumblerAt(image.Pt(300, 160))
+	b.tumblerAt(image.Pt(300, 170))
+	b.tumblerAt(image.Pt(300, 180))
+	b.tumblerAt(image.Pt(300, 190))
+	b.tumblerAt(image.Pt(300, 200))
+	b.tumblerAt(image.Pt(300, 210))
+	b.tumblerAt(image.Pt(300, 220))
 }
 
+//
 func (b *Board) replicator(pt image.Point) {
 	b.cells[image.Pt(pt.X+2, pt.Y)] = true
 	b.cells[image.Pt(pt.X+3, pt.Y)] = true
@@ -311,3 +326,20 @@ func (b *Board) continueLivingOrResurrect(alive bool, neighbors int) bool {
 	}
 	return alive && (neighbors == 2 || neighbors == 3)
 }
+
+func (b *Board) Request(request *BoardRequest) {
+	b.requests <- request
+}
+
+type BoardRequest struct {
+	Request GolRequest
+	At      image.Point
+}
+
+type GolRequest int
+
+const (
+	ClearBoard GolRequest = iota
+	Tumbler
+	GosperGlider
+)
