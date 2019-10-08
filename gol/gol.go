@@ -1,24 +1,19 @@
 package gol
 
 import (
+	"errors"
+	"fmt"
 	"image"
 	"log"
+	"sync"
 )
 
 // GameOfLife creates a new board with given dimensions.
 func GameOfLife(dims image.Point) *Board {
 	board := &Board{
-		Dims:  dims,
-		cells: map[image.Point]bool{},
-	}
-	board.init()
-	return board
-}
-func HighLife(dims image.Point) *Board {
-	board := &Board{
-		highLife: true,
 		Dims:     dims,
 		cells:    map[image.Point]bool{},
+		requests: make(chan *StructuralRequest, 0),
 	}
 	board.init()
 	return board
@@ -26,198 +21,14 @@ func HighLife(dims image.Point) *Board {
 
 // Board is the board with cells and dimensions
 type Board struct {
+	mu       sync.Mutex
 	highLife bool
 	Dims     image.Point
 	cells    map[image.Point]bool
+	requests chan *StructuralRequest
 }
 
-// init set an inital board state.
-func (b *Board) init() {
-
-	b.replicator(image.Pt(b.Dims.X/2, b.Dims.Y/2))
-	//b.smallExploderAt(image.Pt(30, 30))
-	////b.exploderAt(image.Pt(60, 60))
-	//b.gosperGliderGunAt(image.Pt(0, 4))
-	//b.gosperGliderGunAt(image.Pt(0, 34))
-	//b.gosperGliderGunAt(image.Pt(0, 64))
-	//b.gosperGliderGunAt(image.Pt(0, 94))
-	//b.gosperGliderGunAt(image.Pt(0, 124))
-	//b.gosperGliderGunAt(image.Pt(0, 154))
-	//b.gosperGliderGunAt(image.Pt(0, 184))
-	//b.gosperGliderGunAt(image.Pt(0, 214))
-	//b.gosperGliderGunAt(image.Pt(38, 4))
-	//b.gosperGliderGunAt(image.Pt(80, 4))
-	//
-	//b.tumblerAt(image.Pt(300, 100))
-	//b.tumblerAt(image.Pt(300, 110))
-	//b.tumblerAt(image.Pt(300, 120))
-	//b.tumblerAt(image.Pt(300, 130))
-	//b.tumblerAt(image.Pt(300, 140))
-	//b.tumblerAt(image.Pt(300, 150))
-	//b.tumblerAt(image.Pt(300, 160))
-	//b.tumblerAt(image.Pt(300, 170))
-	//b.tumblerAt(image.Pt(300, 180))
-	//b.tumblerAt(image.Pt(300, 190))
-	//b.tumblerAt(image.Pt(300, 200))
-	//b.tumblerAt(image.Pt(300, 210))
-	//b.tumblerAt(image.Pt(300, 220))
-}
-
-func (b *Board) replicator(pt image.Point) {
-	b.cells[image.Pt(pt.X+2, pt.Y)] = true
-	b.cells[image.Pt(pt.X+3, pt.Y)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y)] = true
-
-	b.cells[image.Pt(pt.X+1, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y+1)] = true
-
-	b.cells[image.Pt(pt.X, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y+2)] = true
-
-	b.cells[image.Pt(pt.X, pt.Y+3)] = true
-	b.cells[image.Pt(pt.X+3, pt.Y+3)] = true
-
-	b.cells[image.Pt(pt.X, pt.Y+4)] = true
-	b.cells[image.Pt(pt.X+1, pt.Y+4)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y+4)] = true
-}
-
-/*
-  0 1 2 3 4
-0 - - o o o
-1 - o - - o
-2 o - - - o
-3 o - - o
-4 o o o
-
-*/
-
-func (b *Board) smallExploderAt(pt image.Point) {
-	b.cells[image.Pt(pt.X+1, pt.Y+0)] = true
-	b.cells[image.Pt(pt.X+0, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+1, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+0, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+1, pt.Y+3)] = true
-}
-
-func (b *Board) exploderAt(pt image.Point) {
-	b.cells[image.Pt(pt.X+0, pt.Y+0)] = true
-	b.cells[image.Pt(pt.X+0, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+0, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+0, pt.Y+3)] = true
-	b.cells[image.Pt(pt.X+0, pt.Y+4)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y+0)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y+4)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y+0)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y+3)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y+4)] = true
-}
-
-func (b *Board) gliderAt(pt image.Point) {
-	b.cells[image.Pt(pt.X+1, pt.Y+0)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+0, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+1, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y+2)] = true
-}
-
-func (b *Board) tenCellRow(pt image.Point) {
-	b.cells[image.Pt(pt.X, pt.Y)] = true
-	b.cells[image.Pt(pt.X+1, pt.Y)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y)] = true
-	b.cells[image.Pt(pt.X+3, pt.Y)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y)] = true
-	b.cells[image.Pt(pt.X+5, pt.Y)] = true
-	b.cells[image.Pt(pt.X+6, pt.Y)] = true
-	b.cells[image.Pt(pt.X+7, pt.Y)] = true
-	b.cells[image.Pt(pt.X+8, pt.Y)] = true
-	b.cells[image.Pt(pt.X+9, pt.Y)] = true
-}
-
-func (b *Board) tumblerAt(pt image.Point) {
-	b.cells[image.Pt(pt.X+1, pt.Y)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y)] = true
-	b.cells[image.Pt(pt.X+5, pt.Y)] = true
-
-	b.cells[image.Pt(pt.X+1, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+5, pt.Y+1)] = true
-
-	b.cells[image.Pt(pt.X+2, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y+2)] = true
-
-	b.cells[image.Pt(pt.X, pt.Y+3)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y+3)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y+3)] = true
-	b.cells[image.Pt(pt.X+6, pt.Y+3)] = true
-
-	b.cells[image.Pt(pt.X, pt.Y+4)] = true
-	b.cells[image.Pt(pt.X+2, pt.Y+4)] = true
-	b.cells[image.Pt(pt.X+4, pt.Y+4)] = true
-	b.cells[image.Pt(pt.X+6, pt.Y+4)] = true
-
-	b.cells[image.Pt(pt.X, pt.Y+5)] = true
-	b.cells[image.Pt(pt.X+1, pt.Y+5)] = true
-	b.cells[image.Pt(pt.X+5, pt.Y+5)] = true
-	b.cells[image.Pt(pt.X+6, pt.Y+5)] = true
-}
-
-func (b *Board) gosperGliderGunAt(pt image.Point) {
-	b.cells[image.Pt(pt.X+23, pt.Y)] = true
-	b.cells[image.Pt(pt.X+24, pt.Y)] = true
-	b.cells[image.Pt(pt.X+34, pt.Y)] = true
-	b.cells[image.Pt(pt.X+35, pt.Y)] = true
-
-	b.cells[image.Pt(pt.X+22, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+24, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+34, pt.Y+1)] = true
-	b.cells[image.Pt(pt.X+35, pt.Y+1)] = true
-
-	b.cells[image.Pt(pt.X, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+1, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+9, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+10, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+22, pt.Y+2)] = true
-	b.cells[image.Pt(pt.X+23, pt.Y+2)] = true
-
-	b.cells[image.Pt(pt.X, pt.Y+3)] = true
-	b.cells[image.Pt(pt.X+1, pt.Y+3)] = true
-	b.cells[image.Pt(pt.X+8, pt.Y+3)] = true
-	b.cells[image.Pt(pt.X+10, pt.Y+3)] = true
-
-	b.cells[image.Pt(pt.X+8, pt.Y+4)] = true
-	b.cells[image.Pt(pt.X+9, pt.Y+4)] = true
-	b.cells[image.Pt(pt.X+16, pt.Y+4)] = true
-	b.cells[image.Pt(pt.X+17, pt.Y+4)] = true
-
-	b.cells[image.Pt(pt.X+16, pt.Y+5)] = true
-	b.cells[image.Pt(pt.X+18, pt.Y+5)] = true
-
-	b.cells[image.Pt(pt.X+16, pt.Y+6)] = true
-
-	b.cells[image.Pt(pt.X+35, pt.Y+7)] = true
-	b.cells[image.Pt(pt.X+36, pt.Y+7)] = true
-
-	b.cells[image.Pt(pt.X+35, pt.Y+8)] = true
-	b.cells[image.Pt(pt.X+37, pt.Y+8)] = true
-
-	b.cells[image.Pt(pt.X+35, pt.Y+9)] = true
-
-	b.cells[image.Pt(pt.X+24, pt.Y+12)] = true
-	b.cells[image.Pt(pt.X+25, pt.Y+12)] = true
-	b.cells[image.Pt(pt.X+26, pt.Y+12)] = true
-
-	b.cells[image.Pt(pt.X+24, pt.Y+13)] = true
-
-	b.cells[image.Pt(pt.X+25, pt.Y+14)] = true
-}
-
+//
 // Event creates an event containing relevant board data.
 func (b *Board) Event() *Event {
 	// dont care about syncing right now
@@ -275,10 +86,10 @@ func (b *Board) Iterate() {
 // Runs the board in a separate routine forever.
 func (b *Board) Start(out chan<- []image.Point) {
 	for {
-		out <- b.Points() // this will throttle, most definitely.
+		b.mu.Lock()
+		out <- b.Points()
 		b.Iterate()
-		//time.Sleep(3 * time.Second)
-		// if fps should be adjusted, this method is probably the place to do it
+		b.mu.Unlock()
 	}
 }
 
@@ -302,13 +113,77 @@ func (b *Board) neighbors(pt image.Point) int {
 
 // continueLivingOrResurrect returns true if the cell should be alive, false otherwise.
 func (b *Board) continueLivingOrResurrect(alive bool, neighbors int) bool {
-	if b.highLife {
-		if !alive && neighbors == 3 || !alive && neighbors == 6 {
-			return true
-		}
-	}
 	if !alive && neighbors == 3 {
 		return true
 	}
 	return alive && (neighbors == 2 || neighbors == 3)
 }
+
+// Clear removes all alive cells from the board.
+func (b *Board) Clear() {
+	b.mu.Lock()
+	b.cells = map[image.Point]bool{}
+	defer b.mu.Unlock()
+}
+
+// Handle requests board
+func (b *Board) Handle(r StructuralRequest) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if !r.At().In(image.Rect(0, 0, b.Dims.X, b.Dims.Y)) {
+		return fmt.Errorf("request point %v out of bounds", r)
+	}
+	patternFunc, e := MapToFunc(r.Type())
+	if e != nil {
+		return e
+	}
+	patternFunc(b, r.At())
+	return nil
+}
+
+func (b *Board) init() {
+
+}
+
+type StructuralRequest interface {
+	At() image.Point
+	Type() GolPattern
+}
+
+func MapToFunc(r GolPattern) (StructFunc, error) {
+	switch r {
+	case Tumbler:
+		return TumblerAt, nil
+	case GosperGlider:
+		return GliderGunAt, nil
+	case Replicator:
+		return ReplicatorAt, nil
+	case SmallExploder:
+		return SmallExploderAt, nil
+	case Exploder:
+		return ExploderAt, nil
+	case Glider:
+		return GliderAt, nil
+	case TenCellRow:
+		return TenCellRowAt, nil
+	case Clear:
+		return ClearBoard, nil
+	default:
+		return nil, errors.New("no such pattern type")
+	}
+}
+
+type StructFunc func(b *Board, pt image.Point)
+
+type GolPattern int
+
+const (
+	Tumbler GolPattern = iota
+	GosperGlider
+	Replicator
+	SmallExploder
+	Exploder
+	Glider
+	TenCellRow
+	Clear
+)

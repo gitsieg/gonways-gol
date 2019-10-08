@@ -1,29 +1,42 @@
 package main
 
 import (
+	"github.com/gorilla/mux"
+	"gocv.io/x/gocv"
 	"gonways-gol/gol"
-	"gonways-gol/server"
+	"gonways-gol/serve"
 	"image"
 	"log"
 	"net/http"
 
-	"gocv.io/x/gocv"
-
 	"github.com/hybridgroup/mjpeg"
 )
 
+
 func main() {
-	size := image.Pt(640, 480)
+	size := image.Pt(320, 240)
 	points := make(chan []image.Point)
 	mats := make(chan gocv.Mat)
 	stream := mjpeg.NewStream()
-	board := gol.HighLife(size)
+	board := gol.GameOfLife(size)
 
 	// Set ut parallelism
-	go board.Start(points)                   // board feeds to points
-	go server.MatProduce(size, points, mats) // matproduce reads from points and produces mats
-	go server.Stream(stream, mats)           // stream reads from mats and produces to jpeg buffer
+	go board.Start(points)                  // board feeds to points
+	go serve.MatProduce(size, points, mats) // matproduce reads from points and produces mats
+	go serve.Stream(stream, mats)           // stream reads from mats and produces to jpeg buffer
 
-	http.Handle("/", stream)
-	log.Fatal(http.ListenAndServe(":8080", nil)) // reading the stream is handled on main 'thread'.
+	r := createRouter(serve.NewGameController(board))
+	r.Handle("/", stream)
+	log.Fatal(http.ListenAndServe(":8080", r)) // reading the stream is handled on main 'thread'.
 }
+
+func createRouter(routes... serve.Routable) *mux.Router  {
+	r := mux.NewRouter()
+	for _, v := range routes {
+		for path, route := range v.Routes() {
+			r.Handle(path, route.Handler).Methods(route.Methods...)
+		}
+	}
+	return r
+}
+
