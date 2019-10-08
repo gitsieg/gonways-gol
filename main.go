@@ -1,16 +1,17 @@
 package main
 
 import (
+	"github.com/gorilla/mux"
+	"gocv.io/x/gocv"
 	"gonways-gol/gol"
 	"gonways-gol/serve"
 	"image"
 	"log"
 	"net/http"
 
-	"gocv.io/x/gocv"
-
 	"github.com/hybridgroup/mjpeg"
 )
+
 
 func main() {
 	size := image.Pt(320, 240)
@@ -24,16 +25,18 @@ func main() {
 	go serve.MatProduce(size, points, mats) // matproduce reads from points and produces mats
 	go serve.Stream(stream, mats)           // stream reads from mats and produces to jpeg buffer
 
-	//http.Handle("/", stream)
-	http.Handle("/", SetupHandlers(serve.NewGameController(board)))
-	log.Fatal(http.ListenAndServe(":8080", nil)) // reading the stream is handled on main 'thread'.
+	r := createRouter(serve.NewGameController(board))
+	r.Handle("/", stream)
+	log.Fatal(http.ListenAndServe(":8080", r)) // reading the stream is handled on main 'thread'.
 }
 
-func SetupHandlers(controller *serve.GameController) *http.ServeMux {
-	mux := http.NewServeMux()
-	for k, v := range controller.Routes() {
-		mux.HandleFunc(k, v)
+func createRouter(routes... serve.Routable) *mux.Router  {
+	r := mux.NewRouter()
+	for _, v := range routes {
+		for path, route := range v.Routes() {
+			r.Handle(path, route.Handler).Methods(route.Methods...)
+		}
 	}
-	//mux.Handle("/stream", &stream)
-	return mux
+	return r
 }
+
