@@ -10,9 +10,9 @@ import (
 func NewGameController(game *gol.Board) *GameController {
 	c := &GameController{
 		game: game,
-		cqrs:cqrs{headerOptions: map[string]string{
-			"Access-Control-Allow-Origin" : "*",
-			"Access-Control-Allow-Headers" : "Content-Type",
+		cqrs: cqrs{headerOptions: map[string]string{
+			"Access-Control-Allow-Origin":  "*",
+			"Access-Control-Allow-Headers": "Content-Type",
 			//"Content-Type" : "application/json",
 		}},
 	}
@@ -24,22 +24,40 @@ func (c *GameController) Routes() Routes {
 	withJson := ContentJSON()
 	return Routes{
 		"/game/clear":
-			Route{Methods: Methods{"POST", "OPTIONS"}, Handler:withCQRS( Handler(c.HandleBoardClear))},
+		Route{Methods: Methods{"POST", "OPTIONS"}, Handler: withCQRS(Handler(c.HandleClear))},
 		"/game/create":
-			Route{Methods: Methods{"POST", "OPTIONS"}, Handler: withCQRS(Handler(c.HandleBoardCreate))},
+		Route{Methods: Methods{"POST", "OPTIONS"}, Handler: withCQRS(Handler(c.HandleCreate))},
 		"/game/dims":
-			// Add post here later
-			Route{Methods:Methods{"GET"}, Handler: withJson(withCQRS(Handler(c.HandleDims)))},
+		// Add post here later
+		Route{Methods: Methods{"GET"}, Handler: withJson(withCQRS(Handler(c.HandleDims)))},
+		"/game/options":
+		Route{Methods: Methods{"GET"}, Handler: withJson(withCQRS(Handler(c.HandleOptions))),},
 	}
 }
 
 // GameController is the controller for a game of life board.
 type GameController struct {
-	game          *gol.Board
-	cqrs          cqrs
-	routes        Routes
+	game   *gol.Board
+	cqrs   cqrs
+	routes Routes
 }
 
+// HandleOptions returns the games supported structural requests.
+func (c *GameController) HandleOptions(ctx Context) Response {
+	patterns := map[gol.GolPattern]string{}
+	for i := gol.Tumbler; i <= gol.TenCellRow; i++ {
+		patterns[i] = i.String()
+	}
+	resp := struct {
+		Patterns map[gol.GolPattern]string `json:"patterns"`
+	}{
+		Patterns: patterns,
+	}
+	if err := json.NewEncoder(ctx.Response).Encode(resp); err != nil {
+		return InternalServerError()
+	}
+	return StatusOK()
+}
 
 func (c *GameController) HandleDims(ctx Context) Response {
 	// No mapping for other methods as of yet
@@ -51,14 +69,14 @@ func (c *GameController) HandleDims(ctx Context) Response {
 	return StatusNoContent()
 }
 
-// HandleBoardClear clears the board of any alive points
-func (c *GameController) HandleBoardClear(ctx Context) Response {
+// HandleClear clears the board of any alive points
+func (c *GameController) HandleClear(ctx Context) Response {
 	c.game.Clear()
 	return StatusNoContent()
 }
 
-// HandleBoardCreate creates structures on the board at a given point.
-func (c *GameController) HandleBoardCreate(ctx Context) Response {
+// HandleCreate creates structures on the board at a given point.
+func (c *GameController) HandleCreate(ctx Context) Response {
 	log.Println(ctx.Response.Header())
 	r := &gameRequest{}
 	if err := json.NewDecoder(ctx.Request.Body).Decode(r); err != nil {
@@ -84,4 +102,3 @@ func (g gameRequest) At() image.Point {
 func (g gameRequest) Type() gol.GolPattern {
 	return g.Pattern
 }
-
