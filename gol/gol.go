@@ -177,6 +177,19 @@ type StructFunc func(b *Board, pt image.Point)
 
 type GolPattern int
 
+func (g GolPattern) String() string {
+	return [...]string{
+		"Tumbler",
+		"GosperGlider",
+		"Replicator",
+		"SmallExploder",
+		"Exploder",
+		"Glider",
+		"TenCellRow",
+		"Clear",
+	}[g]
+}
+
 const (
 	Tumbler GolPattern = iota
 	GosperGlider

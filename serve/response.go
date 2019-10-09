@@ -21,7 +21,6 @@ type resp struct {
 
 // WriteTo writes the resp status code onto the headers of the http response, and any message or error associated with it.
 func (r resp) WriteTo(w http.ResponseWriter) (n int64, err error) {
-	w.WriteHeader(r.Status())
 	if r.err != nil {
 		i, err := fmt.Fprintf(w, r.err.Error())
 		return int64(i), err
